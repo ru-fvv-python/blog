@@ -215,3 +215,5 @@ dmypy.json
 Будет удалено blog/__pycache__/
 Будет удалено blog/migrations/__pycache__/
 Будет удалено mysite/__pycache__/
+/db.sqlite3
+Будет удалено blog/migrations/0002_alter_post_slug.py
