@@ -1,13 +1,24 @@
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.shortcuts import render, get_object_or_404
+from django.views.generic import ListView
 
 from blog.models import Post
+
+
+class PostListView(ListView):
+    """
+    Альтернативнре представление списка постов
+    """
+
+    queryset = Post.published.all()
+    context_object_name = 'posts'
+    paginate_by = 3
+    template_name = 'blog/post/list.html'
 
 
 # Create your views here.
 # данном представлении извлекаются все посты со статусом PUBLISHED
 def post_list(request):
-
     post_list = Post.published.all()
 
     # Постраничная разбивка с 3 постами на страницу
