@@ -1,8 +1,10 @@
+from django.core.mail import send_mail
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.shortcuts import render, get_object_or_404
 from django.views.generic import ListView
 
-from blog.models import Post
+from .forms import EmailPostForm
+from .models import Post
 
 
 class PostListView(ListView):
@@ -52,3 +54,40 @@ def post_detail(request, year, month, day, post):
     return render(request,
                   'blog/post/detail.html',
                   {'post': post})
+
+
+# представление, чтобы создавать экземпляр формы и работать
+# с передачей формы на обработку.
+def post_share(request, post_id):
+
+    # Извлечь пост по идентификатору id
+    post = get_object_or_404(Post,
+                             id=post_id,
+                             status=Post.Status.PUBLISHED)
+    sent = False
+
+    if request.method == 'POST':
+        # Форма была передана на обработку
+        form = EmailPostForm(request.POST)
+        if form.is_valid():
+            # Поля формы успешно прошли валидацию
+            cd = form.cleaned_data
+            # ... отправить электронное письмо
+            post_url = request.build_absolute_uri(
+                post.get_absolute_url())
+            subject = '{} recommends you read {}'.format(cd['name'],
+                                                         post.title)
+
+            message = 'Read {} at {}\n\n' \
+                      '{}\'s comments: {}'.format(post.title,
+                                                  post_url,
+                                                  cd['name'],
+                                                  cd['comments'])
+
+            send_mail(subject, message, 'vladfomin2008@yandex.ru', [cd['to']])
+            sent = True
+    else:
+        form = EmailPostForm()
+    return render(request, 'blog/post/share.html', {'post': post,
+                                                    'form': form,
+                                                    'sent': sent})
