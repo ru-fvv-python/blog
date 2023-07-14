@@ -1,9 +1,10 @@
 from django.core.mail import send_mail
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.shortcuts import render, get_object_or_404
+from django.views.decorators.http import require_POST
 from django.views.generic import ListView
 
-from .forms import EmailPostForm
+from .forms import EmailPostForm, CommentForm
 from .models import Post
 
 
@@ -18,9 +19,10 @@ class PostListView(ListView):
     template_name = 'blog/post/list.html'
 
 
-# Create your views here.
-# данном представлении извлекаются все посты со статусом PUBLISHED
 def post_list(request):
+    """
+    в данном представлении извлекаются все посты со статусом PUBLISHED
+    """
     post_list = Post.published.all()
 
     # Постраничная разбивка с 3 постами на страницу
@@ -42,24 +44,32 @@ def post_list(request):
                   {'posts': posts})
 
 
-# представление одиночного поста на странице
 def post_detail(request, year, month, day, post):
+    """
+    представление одиночного поста на странице
+    """
     post = get_object_or_404(Post,
                              status=Post.Status.PUBLISHED,
                              slug=post,
                              publish__year=year,
                              publish__month=month,
                              publish__day=day)
-
+    # список активных комментариев к этому посту
+    comments = post.comments.filter(active=True)
+    # форма для комментирования пользователями
+    form = CommentForm
     return render(request,
                   'blog/post/detail.html',
-                  {'post': post})
+                  {'post': post,
+                   'comments': comments,
+                   'form': form})
 
 
-# представление, чтобы создавать экземпляр формы и работать
-# с передачей формы на обработку.
 def post_share(request, post_id):
-
+    """
+    представление, чтобы создавать экземпляр формы и работать
+    с передачей формы на обработку
+    """
     # Извлечь пост по идентификатору id
     post = get_object_or_404(Post,
                              id=post_id,
@@ -91,3 +101,28 @@ def post_share(request, post_id):
     return render(request, 'blog/post/share.html', {'post': post,
                                                     'form': form,
                                                     'sent': sent})
+
+
+@require_POST
+def post_comment(request, post_id):
+    """
+    передача формы на обработку
+    """
+    post = get_object_or_404(Post,
+                             id=post_id,
+                             status=Post.Status.PUBLISHED)
+    comment = None
+
+    # Комментарий был отправлен
+    form = CommentForm(data=request.POST)
+    if form.is_valid():
+        # создать объект класса Comment, не сохраняя его в базе данных
+        comment = form.save(commit=False)
+        # назначить пост комментарию
+        comment.post = post
+        # сохранить комментарий в базе данных
+        comment.save()
+    return render(request, 'blog/post/comment.html',
+                  {'post': post,
+                   'form': form,
+                   'comment': comment})
