@@ -2,6 +2,7 @@ from django.contrib.auth.models import User
 from django.db import models
 from django.urls import reverse
 from django.utils import timezone
+from taggit.managers import TaggableManager
 
 
 # Create your models here.
@@ -53,6 +54,10 @@ class Post(models.Model):
 
     objects = models.Manager()  # менеджер, применяемый по умолчанию
     published = PublishedManager()  # конкретно-прикладной менеджер
+
+    # менеджер tags позволит добавлять, извлекать и удалять теги из
+    # объектов Post
+    tags = TaggableManager()
 
     class Meta:
         """сортировка по дате публикации в убывающем порядке"""

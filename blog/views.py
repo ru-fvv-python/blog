@@ -3,6 +3,7 @@ from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.shortcuts import render, get_object_or_404
 from django.views.decorators.http import require_POST
 from django.views.generic import ListView
+from taggit.models import Tag
 
 from .forms import EmailPostForm, CommentForm
 from .models import Post
@@ -19,11 +20,15 @@ class PostListView(ListView):
     template_name = 'blog/post/list.html'
 
 
-def post_list(request):
+def post_list(request, tag_slug=None):
     """
     в данном представлении извлекаются все посты со статусом PUBLISHED
     """
     post_list = Post.published.all()
+    tag = None
+    if tag_slug:
+        tag = get_object_or_404(Tag, slug=tag_slug)
+        post_list = post_list.filter(tags__in=[tag])
 
     # Постраничная разбивка с 3 постами на страницу
     paginator = Paginator(post_list, 3)
@@ -41,7 +46,8 @@ def post_list(request):
         posts = paginator.page(paginator.num_pages)
     return render(request,
                   'blog/post/list.html',
-                  {'posts': posts})
+                  {'posts': posts,
+                   'tag': tag})
 
 
 def post_detail(request, year, month, day, post):
